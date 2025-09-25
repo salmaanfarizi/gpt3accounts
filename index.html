@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Daily Cash Reconciliation & Sales System</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --primary:#10b981; --primary-dark:#059669; --secondary:#3b82f6;
+      --danger:#ef4444; --warning:#f59e0b; --success:#22c55e;
+      --dark:#111827; --light:#f9fafb; --border:#e5e7eb;
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;
+           background:linear-gradient(135deg,#059669 0%,#0891b2 100%);
+           min-height:100vh; padding:10px; }
+    .container { max-width:1400px; margin:0 auto; background:#fff; border-radius:20px;
+                 box-shadow:0 25px 50px -12px rgba(0,0,0,.25); overflow:hidden; }
+    .header { background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+              color:#fff; padding:20px; position:relative; }
+    .header h1 { font-size:24px; font-weight:700; margin-bottom:5px; }
+    .app-badge { position:absolute; top:20px; right:20px; background:rgba(255,255,255,.2);
+                 padding:8px 16px; border-radius:20px; font-size:12px; font-weight:600;
+                 backdrop-filter:blur(10px); }
+    .route-section { background:#f8f9fa; padding:15px; border-bottom:2px solid var(--border); }
+    .route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+                  gap:10px; margin-bottom:15px; }
+    .route-btn { padding:12px; border:2px solid var(--border); background:#fff; border-radius:10px;
+                 cursor:pointer; transition:.3s; font-weight:600; font-size:13px; color:var(--dark); text-align:center; }
+    .route-btn:hover { border-color:var(--primary); transform:translateY(-2px);
+                       box-shadow:0 5px 15px rgba(16,185,129,.2); }
+    .route-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .date-info { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .date-input { padding:10px; border:2px solid var(--border); border-radius:8px; font-size:14px; font-weight:500; }
+    .info-display { padding:10px; background:#eff6ff; border:2px solid #93c5fd; border-radius:8px;
+                    text-align:center; font-weight:600; color:var(--secondary); }
+    .content { padding:20px; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+    .section-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px;
+                    box-shadow:0 2px 4px rgba(0,0,0,.05); }
+    .section-title { font-size:16px; font-weight:700; color:var(--dark); margin-bottom:15px;
+                     padding-bottom:10px; border-bottom:2px solid var(--border); }
+    .input-group { display:flex; justify-content:space-between; align-items:center;
+                   margin-bottom:12px; padding:8px 0; border-bottom:1px solid #f3f4f6; }
+    .input-label { font-size:14px; font-weight:600; color:#4b5563; flex:1; }
+    .input-wrapper { display:flex; align-items:center; gap:5px; }
+    .currency-prefix { font-size:14px; font-weight:600; color:#6b7280; }
+    .input-field { width:120px; padding:8px 12px; border:2px solid var(--border); border-radius:6px;
+                   font-size:14px; text-align:right; font-weight:600; }
+    .input-field:focus { outline:none; border-color:var(--primary); background:#f0fdf4; }
+    .input-field.positive { border-color:var(--success); background:#f0fdf4; }
+    .input-field.negative { border-color:var(--danger); background:#fef2f2; }
+    .result-field { background:#f3f4f6; font-weight:700; cursor:not-allowed; }
+    .cash-breakdown { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:15px; }
+    .denomination { display:flex; align-items:center; gap:8px; padding:8px; background:#f9fafb; border-radius:8px; }
+    .denom-label { font-size:12px; font-weight:600; color:#6b7280; min-width:40px; }
+    .denom-input { width:60px; padding:4px; border:1px solid var(--border); border-radius:4px; text-align:center; font-size:12px; }
+    .denom-value { font-size:11px; color:#9ca3af; margin-left:auto; }
+    .sales-section { margin-top:30px; }
+    .sales-table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:8px; overflow:hidden; }
+    .sales-table th { background:var(--primary); color:#fff; padding:10px; text-align:left; font-size:12px;
+                      font-weight:600; text-transform:uppercase; }
+    .sales-table td { padding:10px; border-bottom:1px solid var(--border); font-size:13px; }
+    .sales-table tr:hover { background:#f9fafb; }
+    .qty-input { width:60px; padding:4px; border:1px solid var(--border); border-radius:4px; text-align:center; }
+    .summary-section { margin-top:30px; padding:20px; background:linear-gradient(135deg,#059669,#0891b2);
+                       border-radius:12px; color:#fff; }
+    .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-top:15px; }
+    .summary-card { background:rgba(255,255,255,.15); padding:15px; border-radius:8px; backdrop-filter:blur(10px); }
+    .summary-label { font-size:11px; opacity:.9; text-transform:uppercase; margin-bottom:5px; }
+    .summary-value { font-size:24px; font-weight:700; }
+    .difference-indicator { padding:12px; border-radius:8px; font-weight:700; font-size:16px; text-align:center; margin:20px 0; }
+    .difference-indicator.balanced { background:#d1fae5; color:#065f46; border:2px solid #10b981; }
+    .difference-indicator.shortage { background:#fee2e2; color:#991b1b; border:2px solid #ef4444; }
+    .difference-indicator.excess { background:#fef3c7; color:#92400e; border:2px solid #f59e0b; }
+    .btn-group { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
+    .btn { padding:12px 20px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px;
+           transition:.3s; display:inline-flex; align-items:center; gap:8px; }
+    .btn-primary{ background:var(--primary); color:#fff; }
+    .btn-secondary{ background:var(--secondary); color:#fff; }
+    .btn-danger{ background:var(--danger); color:#fff; }
+    .btn-warning{ background:var(--warning); color:#fff; }
+    .btn:hover{ transform:translateY(-2px); box-shadow:0 10px 20px rgba(0,0,0,.2); }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+    .status-message { padding:12px 16px; border-radius:8px; margin-bottom:20px; animation:slideIn .3s; }
+    @keyframes slideIn { from{opacity:0; transform:translateX(-20px)} to{opacity:1; transform:translateX(0)} }
+    .status-success{ background:#d1fae5; color:#065f46; border:1px solid #10b981; }
+    .status-error{ background:#fee2e2; color:#991b1b; border:1px solid #ef4444; }
+    .status-info{ background:#e0f2fe; color:#075985; border:1px solid #06b6d4; }
+    .hidden{ display:none !important; }
+    .loading-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; justify-content:center;
+                       align-items:center; z-index:1000; }
+    .loading-spinner { width:50px; height:50px; border:5px solid #f3f3f3; border-top:5px solid var(--primary);
+                       border-radius:50%; animation:spin 1s linear infinite; }
+    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+    @media (max-width:768px){ .grid-2{ grid-template-columns:1fr } .input-field{ width:100px } }
+
+    /* Sold/No-sale status cosmetics (optional) */
+    .status-badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700 }
+    .status-sold{ background:#d1fae5; color:#065f46; border:1px solid #10b981 }
+    .status-nosale{ background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb }
+    tr.nosale{ opacity:.7 } tr.sold{ background:#f0fdf4 }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💰 Daily Cash Reconciliation & Sales</h1>
+      <p>Sales tracking and cash balance verification system</p>
+      <div class="app-badge">ACCOUNTS</div>
+    </div>
+
+    <div class="route-section">
+      <div class="route-grid">
+        <button class="route-btn" onclick="selectRoute('Al-Hasa 1')">Al-Hasa 1</button>
+        <button class="route-btn" onclick="selectRoute('Al-Hasa 2')">Al-Hasa 2</button>
+        <button class="route-btn" onclick="selectRoute('Al-Hasa 3')">Al-Hasa 3</button>
+        <button class="route-btn" onclick="selectRoute('Al-Hasa 4')">Al-Hasa 4</button>
+        <button class="route-btn" onclick="selectRoute('Al-Hasa Wholesale')">Wholesale</button>
+      </div>
+      <div class="date-info">
+        <input type="date" class="date-input" id="salesDate">
+        <div class="info-display">
+          Route: <strong id="selectedRoute">Not Selected</strong>
+        </div>
+      </div>
+
+      <button class="btn btn-warning" onclick="fetchInventoryData()" style="margin-top:15px;width:100%;">
+        🔄 Auto-Calculate Sales from Inventory
+      </button>
+    </div>
+
+    <div class="content">
+      <div id="statusMessage" class="hidden"></div>
+
+      <!-- Sales Items -->
+      <div class="sales-section">
+        <h3 class="section-title">📦 Sales Items</h3>
+
+        <div style="display:flex;gap:12px;align-items:center;margin:8px 0 12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="toggleSoldOnly" />
+            <span>Show only sold items</span>
+          </label>
+          <span style="font-size:12px;color:#6b7280">Sold SKUs: <b id="soldCount">0</b></span>
+          <span id="catalogStatus" style="margin-left:auto;font-size:12px;color:#6b7280">Catalog: loading…</span>
+        </div>
+
+        <table class="sales-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Code</th>
+              <th>Item</th>
+              <th>Unit</th>
+              <th>Price (SAR)</th>
+              <th>Qty Sold</th>
+              <th>Total (SAR)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="salesTableBody"></tbody>
+          <tfoot>
+            <tr style="background:#f3f4f6;font-weight:bold;">
+              <td colspan="6" style="text-align:right;">Total Sales Value:</td>
+              <td id="totalSalesDisplay">SAR 0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Cash Reconciliation -->
+      <div class="grid-2" style="margin-top:30px;">
+        <div class="section-card">
+          <h3 class="section-title">💳 Payment Methods</h3>
+
+          <div class="input-group">
+            <label class="input-label">Total Sales Value</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field result-field" id="totalSalesValue" readonly>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">(-) Credit Sales</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field negative" id="creditSales" step="0.01"
+                     placeholder="0.00" onchange="calculateCashBalance()">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">(+) Credit Repayment</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field positive" id="creditRepayment" step="0.01"
+                     placeholder="0.00" onchange="calculateCashBalance()">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">(-) Bank POS</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field negative" id="bankPOS" step="0.01"
+                     placeholder="0.00" onchange="calculateCashBalance()">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">(-) Bank Transfer</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field negative" id="bankTransfer" step="0.01"
+                     placeholder="0.00" onchange="calculateCashBalance()">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">(-) Cheque</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field negative" id="cheque" step="0.01"
+                     placeholder="0.00" onchange="calculateCashBalance()">
+            </div>
+          </div>
+
+          <div class="input-group" style="background:#f0fdf4;padding:12px;border-radius:8px;margin-top:10px;">
+            <label class="input-label" style="font-size:16px;">Expected Cash Balance</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix" style="font-size:16px;">SAR</span>
+              <input type="number" class="input-field result-field" id="expectedCashBalance"
+                     readonly style="font-size:16px;color:#059669;">
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3 class="section-title">💵 Cash Count</h3>
+
+          <div class="input-group">
+            <label class="input-label">Cash Notes Total</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field" id="cashNotes" step="0.01" placeholder="0.00" readonly>
+            </div>
+          </div>
+
+          <div class="cash-breakdown">
+            <div class="denomination">
+              <span class="denom-label">500</span>
+              <input type="number" class="denom-input" id="note500" placeholder="0" onchange="calculateCashNotes()">
+              <span class="denom-value" id="val500">0</span>
+            </div>
+            <div class="denomination">
+              <span class="denom-label">100</span>
+              <input type="number" class="denom-input" id="note100" placeholder="0" onchange="calculateCashNotes()">
+              <span class="denom-value" id="val100">0</span>
+            </div>
+            <div class="denomination">
+              <span class="denom-label">50</span>
+              <input type="number" class="denom-input" id="note50" placeholder="0" onchange="calculateCashNotes()">
+              <span class="denom-value" id="val50">0</span>
+            </div>
+            <div class="denomination">
+              <span class="denom-label">20</span>
+              <input type="number" class="denom-input" id="note20" placeholder="0" onchange="calculateCashNotes()">
+              <span class="denom-value" id="val20">0</span>
+            </div>
+            <div class="denomination">
+              <span class="denom-label">10</span>
+              <input type="number" class="denom-input" id="note10" placeholder="0" onchange="calculateCashNotes()">
+              <span class="denom-value" id="val10">0</span>
+            </div>
+            <div class="denomination">
+              <span class="denom-label">5</span>
+              <input type="number" class="denom-input" id="note5" placeholder="0" onchange="calculateCashNotes()">
+              <span class="denom-value" id="val5">0</span>
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-top:15px;">
+            <label class="input-label">Coins Total</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix">SAR</span>
+              <input type="number" class="input-field" id="coinsTotal" step="0.01" placeholder="0.00"
+                     onchange="calculateActualCash()">
+            </div>
+          </div>
+
+          <div class="input-group" style="background:#eff6ff;padding:12px;border-radius:8px;margin-top:10px;">
+            <label class="input-label" style="font-size:16px;">Actual Cash Total</label>
+            <div class="input-wrapper">
+              <span class="currency-prefix" style="font-size:16px;">SAR</span>
+              <input type="number" class="input-field result-field" id="actualCashTotal"
+                     readonly style="font-size:16px;color:#2563eb;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Difference -->
+      <div id="differenceIndicator" class="difference-indicator balanced">
+        <div style="font-size:14px;opacity:.8;margin-bottom:5px;">Cash Difference</div>
+        <div id="cashDifference" style="font-size:28px;">SAR 0.00</div>
+        <div id="differenceStatus" style="font-size:12px;margin-top:5px;">Balanced</div>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary-section">
+        <h3>📊 Daily Summary</h3>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-label">Total Sales</div>
+            <div class="summary-value" id="summaryTotalSales">SAR 0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Cash Collected</div>
+            <div class="summary-value" id="summaryCashCollected">SAR 0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Credit Sales</div>
+            <div class="summary-value" id="summaryCreditSales">SAR 0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Bank Deposits</div>
+            <div class="summary-value" id="summaryBankDeposits">SAR 0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveData()" id="saveBtn">💾 Save to Google Sheets</button>
+        <button class="btn btn-secondary" onclick="exportReport()">📄 Export Report</button>
+        <button class="btn btn-danger" onclick="clearData()">🗑️ Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <script>
+    // ===== CONFIG =====
+    // Use your unified Apps Script deployment URL (same backend as Stock app)
+    const WEBHOOK_URL =
+      'https://script.google.com/macros/s/AKfycbwxddHbw-oIgjEJ1pw23HXZieVycmqTgsLKJW2QrzXedAdTmuCPL_7DQUEYA_Mdcb81CQ/exec';
+
+    // ===== STATE =====
+    let currentRoute = '';
+    // Catalog format expected from backend: { "Sunflower Seeds": [{code,name,unit,price,...}], ... }
+    let CATALOG = {};     // filled by loadCatalog()
+    let SKU_INDEX = {};   // code -> {category, code, name, unit, price}
+
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', async () => {
+      // today's date
+      const today = new Date();
+      document.getElementById('salesDate').value = today.toISOString().split('T')[0];
+
+      // bind filter
+      document.getElementById('toggleSoldOnly').addEventListener('change', applySoldOnlyFilter);
+
+      // Load catalog then render table
+      await loadCatalog();
+      renderSalesTableFromCatalog();
+      loadFromStorage(); // will set quantities if any
+      recomputeSalesGrandTotal(); // totals, summaries
+    });
+
+    // ===== ROUTE =====
+    function selectRoute(route) {
+      currentRoute = route;
+      document.getElementById('selectedRoute').textContent = route;
+      document.querySelectorAll('.route-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent === route || (btn.textContent === 'Wholesale' && route === 'Al-Hasa Wholesale')) {
+          btn.classList.add('active');
+        }
+      });
+      saveToStorage();
+    }
+
+    // ===== CATALOG LOADER (from backend) =====
+    async function loadCatalog() {
+      setCatalogStatus('loading');
+      try {
+        const res = await fetch(`${WEBHOOK_URL}?action=init`, { method: 'GET' });
+        const json = await res.json();
+
+        if (!json || !json.success) {
+          setCatalogStatus('error');
+          return;
+        }
+
+        const cat = (json.data && json.data.catalog) ? json.data.catalog : null;
+        if (!cat || typeof cat !== 'object') {
+          setCatalogStatus('error');
+          return;
+        }
+
+        CATALOG = cat;
+        buildSkuIndex(cat);
+        setCatalogStatus('ready');
+      } catch (e) {
+        console.error('Catalog load failed:', e);
+        setCatalogStatus('error');
+      }
+    }
+
+    function buildSkuIndex(cat) {
+      SKU_INDEX = {};
+      Object.entries(cat).forEach(([category, items]) => {
+        (items || []).forEach(item => {
+          SKU_INDEX[item.code] = {
+            category,
+            code: item.code,
+            name: item.name || '',
+            unit: item.unit || '',
+            price: Number(item.price || 0)
+          };
+        });
+      });
+    }
+
+    function setCatalogStatus(state) {
+      const el = document.getElementById('catalogStatus');
+      if (!el) return;
+      if (state === 'loading') el.textContent = 'Catalog: loading…';
+      else if (state === 'ready') el.textContent = 'Catalog: ready';
+      else el.textContent = 'Catalog: error';
+    }
+
+    // ===== SALES TABLE (built from CATALOG) =====
+    function renderSalesTableFromCatalog() {
+      const tbody = document.getElementById('salesTableBody');
+      tbody.innerHTML = '';
+
+      const categories = Object.keys(CATALOG);
+      categories.forEach(category => {
+        (CATALOG[category] || []).forEach(item => {
+          const tr = document.createElement('tr');
+          tr.setAttribute('data-code', item.code);
+          tr.classList.add('nosale');
+
+          tr.innerHTML = `
+            <td>${category}</td>
+            <td>${item.code}</td>
+            <td>${item.name || ''}</td>
+            <td>${item.unit || ''}</td>
+            <td>${Number(item.price || 0)}</td>
+            <td>
+              <input type="number" class="qty-input" id="qty_${item.code}"
+                     placeholder="0" min="0"
+                     onchange="handleQtyChange('${item.code}', ${Number(item.price || 0)})">
+            </td>
+            <td id="total_${item.code}">0.00</td>
+            <td id="status_${item.code}">
+              <span class="status-badge status-nosale">No Sale</span>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+
+      // initialize statuses
+      Object.values(SKU_INDEX).forEach(meta => updateRowStatus(meta.code, 0));
+    }
+
+    // qty handler / row status / totals
+    function handleQtyChange(code, price) {
+      const qty = toNum(document.getElementById(`qty_${code}`).value);
+      document.getElementById(`total_${code}`).textContent = (qty * price).toFixed(2);
+      updateRowStatus(code, qty);
+      recomputeSalesGrandTotal();
+      applySoldOnlyFilter();
+      saveToStorage();
+    }
+
+    function updateRowStatus(code, qty) {
+      const tr = document.querySelector(`tr[data-code="${code}"]`);
+      const cell = document.getElementById(`status_${code}`);
+      if (!tr || !cell) return;
+      if (qty > 0) {
+        tr.classList.add('sold'); tr.classList.remove('nosale');
+        cell.innerHTML = `<span class="status-badge status-sold">Sold</span>`;
+      } else {
+        tr.classList.add('nosale'); tr.classList.remove('sold');
+        cell.innerHTML = `<span class="status-badge status-nosale">No Sale</span>`;
+      }
+    }
+
+    function applySoldOnlyFilter() {
+      const soldOnly = document.getElementById('toggleSoldOnly').checked;
+      document.querySelectorAll('#salesTableBody tr').forEach(tr => {
+        const code = tr.getAttribute('data-code');
+        const qty = toNum(document.getElementById(`qty_${code}`).value);
+        tr.style.display = (soldOnly && qty === 0) ? 'none' : '';
+      });
+    }
+
+    function recomputeSalesGrandTotal() {
+      let grand = 0, sold = 0;
+      Object.values(SKU_INDEX).forEach(meta => {
+        const qty = toNum(document.getElementById(`qty_${meta.code}`).value);
+        const total = qty * Number(meta.price || 0);
+        if (qty > 0) sold++;
+        grand += total;
+      });
+
+      setText('totalSalesDisplay', `SAR ${grand.toFixed(2)}`);
+      setValue('totalSalesValue', grand.toFixed(2));
+      setText('summaryTotalSales', `SAR ${grand.toFixed(2)}`);
+      setText('soldCount', sold);
+      calculateCashBalance();
+    }
+
+    // ===== INVENTORY → SALES (backend calc) =====
+    async function fetchInventoryData() {
+      if (!currentRoute) return showStatus('Please select a route first!', 'error');
+      const salesDate = getValue('salesDate');
+      if (!salesDate) return showStatus('Please select a date!', 'error');
+
+      // previous day
+      const cur = new Date(salesDate);
+      const prev = new Date(cur); prev.setDate(prev.getDate() - 1);
+      const prevStr = prev.toISOString().split('T')[0];
+
+      showStatus('Fetching inventory data…', 'info');
+      showLoading(true);
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'calculateSalesFromInventory',
+            route: currentRoute,
+            currentDate: salesDate,
+            previousDate: prevStr
+          })
+        });
+        const json = await res.json();
+
+        if (json.status === 'success' && Array.isArray(json.data)) {
+          populateSalesDataFromCalc(json.data);
+          showStatus('Sales data calculated from inventory!', 'success');
+        } else {
+          showStatus('No inventory data found for calculation', 'error');
+        }
+      } catch (e) {
+        console.error(e);
+        showStatus('Unable to fetch inventory data. Please enter manually.', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function populateSalesDataFromCalc(rows) {
+      // clear all qty
+      Object.values(SKU_INDEX).forEach(meta => {
+        const input = byId(`qty_${meta.code}`);
+        if (input) input.value = '';
+        setText(`total_${meta.code}`, '0.00');
+        updateRowStatus(meta.code, 0);
+      });
+
+      // fill from backend
+      rows.forEach(r => {
+        const code = r.code;
+        const qty = toNum(r.salesQty);
+        const meta = SKU_INDEX[code];
+        if (!meta) return; // unknown SKU in catalog? skip
+        const input = byId(`qty_${code}`);
+        if (input) input.value = qty;
+        setText(`total_${code}`, (qty * Number(meta.price || 0)).toFixed(2));
+        updateRowStatus(code, qty);
+      });
+
+      recomputeSalesGrandTotal();
+      applySoldOnlyFilter();
+    }
+
+    // ===== CASH / SUMMARY =====
+    function calculateCashBalance() {
+      const totalSales = toNum(getValue('totalSalesValue'));
+      const creditSales = toNum(getValue('creditSales'));
+      const creditRepayment = toNum(getValue('creditRepayment'));
+      const bankPOS = toNum(getValue('bankPOS'));
+      const bankTransfer = toNum(getValue('bankTransfer'));
+      const cheque = toNum(getValue('cheque'));
+
+      const expected = totalSales - creditSales + creditRepayment - bankPOS - bankTransfer - cheque;
+      setValue('expectedCashBalance', expected.toFixed(2));
+
+      setText('summaryCreditSales', `SAR ${creditSales.toFixed(2)}`);
+      const bankDeposits = bankPOS + bankTransfer + cheque;
+      setText('summaryBankDeposits', `SAR ${bankDeposits.toFixed(2)}`);
+
+      calculateDifference();
+      saveToStorage();
+    }
+
+    function calculateCashNotes() {
+      const denoms = [500,100,50,20,10,5];
+      let total = 0;
+      denoms.forEach(d => {
+        const count = toNum(getValue(`note${d}`));
+        const val = count * d;
+        setText(`val${d}`, val);
+        total += val;
+      });
+      setValue('cashNotes', total.toFixed(2));
+      calculateActualCash();
+    }
+
+    function calculateActualCash() {
+      const notes = toNum(getValue('cashNotes'));
+      const coins = toNum(getValue('coinsTotal'));
+      const actual = notes + coins;
+      setValue('actualCashTotal', actual.toFixed(2));
+      setText('summaryCashCollected', `SAR ${actual.toFixed(2)}`);
+      calculateDifference();
+      saveToStorage();
+    }
+
+    function calculateDifference() {
+      const expected = toNum(getValue('expectedCashBalance'));
+      const actual = toNum(getValue('actualCashTotal'));
+      const diff = actual - expected;
+
+      setText('cashDifference', `SAR ${diff.toFixed(2)}`);
+
+      const ind = byId('differenceIndicator');
+      const status = byId('differenceStatus');
+      if (Math.abs(diff) < 0.01) {
+        ind.className = 'difference-indicator balanced';
+        status.textContent = 'Balanced';
+      } else if (diff < 0) {
+        ind.className = 'difference-indicator shortage';
+        status.textContent = `Cash Short by SAR ${Math.abs(diff).toFixed(2)}`;
+      } else {
+        ind.className = 'difference-indicator excess';
+        status.textContent = `Cash Over by SAR ${diff.toFixed(2)}`;
+      }
+    }
+
+    // ===== SAVE / EXPORT / CLEAR =====
+    async function saveData() {
+      if (!currentRoute) return showStatus('Please select a route!', 'error');
+      const date = getValue('salesDate');
+      if (!date) return showStatus('Please select a date!', 'error');
+
+      const btn = byId('saveBtn');
+      btn.disabled = true; showLoading(true);
+      const payload = collectData();
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'saveCashReconciliation', ...payload })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          showStatus('Data saved successfully!', 'success');
+        } else {
+          showStatus('Error: ' + (json.data || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        showStatus('Error saving data', 'error');
+      } finally {
+        btn.disabled = false; showLoading(false);
+      }
+    }
+
+    function collectData() {
+      const salesItems = [];
+      Object.values(SKU_INDEX).forEach(meta => {
+        const qty = toNum(getValue(`qty_${meta.code}`));
+        if (qty > 0) {
+          salesItems.push({
+            category: meta.category,
+            code: meta.code,
+            name: meta.name,
+            unit: meta.unit,
+            price: Number(meta.price || 0),
+            quantity: qty,
+            total: qty * Number(meta.price || 0)
+          });
+        }
+      });
+
+      return {
+        route: currentRoute,
+        date: getValue('salesDate'),
+        salesItems,
+        totalSales: toNum(getValue('totalSalesValue')),
+        creditSales: toNum(getValue('creditSales')),
+        creditRepayment: toNum(getValue('creditRepayment')),
+        bankPOS: toNum(getValue('bankPOS')),
+        bankTransfer: toNum(getValue('bankTransfer')),
+        cheque: toNum(getValue('cheque')),
+        expectedCash: toNum(getValue('expectedCashBalance')),
+        cashNotes: {
+          total: toNum(getValue('cashNotes')),
+          denominations: {
+            500: toNum(getValue('note500')),
+            100: toNum(getValue('note100')),
+            50:  toNum(getValue('note50')),
+            20:  toNum(getValue('note20')),
+            10:  toNum(getValue('note10')),
+            5:   toNum(getValue('note5'))
+          }
+        },
+        coins: toNum(getValue('coinsTotal')),
+        actualCash: toNum(getValue('actualCashTotal')),
+        difference: toNum(getValue('actualCashTotal')) - toNum(getValue('expectedCashBalance')),
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    function exportReport() {
+      const data = collectData();
+      const date = getValue('salesDate') || 'unknown';
+
+      let csv = 'Daily Cash Reconciliation Report\n';
+      csv += `Date,${date}\n`;
+      csv += `Route,${currentRoute || 'Not Selected'}\n\n`;
+
+      csv += 'SALES ITEMS\n';
+      csv += 'Category,Code,Item,Unit,Price,Quantity,Total\n';
+      data.salesItems.forEach(i => {
+        csv += `${i.category},${i.code},${i.name},${i.unit},${i.price},${i.quantity},${i.total}\n`;
+      });
+
+      csv += '\nCASH RECONCILIATION\n';
+      csv += `Total Sales,${data.totalSales}\n`;
+      csv += `Credit Sales,${data.creditSales}\n`;
+      csv += `Credit Repayment,${data.creditRepayment}\n`;
+      csv += `Bank POS,${data.bankPOS}\n`;
+      csv += `Bank Transfer,${data.bankTransfer}\n`;
+      csv += `Cheque,${data.cheque}\n`;
+      csv += `Expected Cash,${data.expectedCash}\n`;
+      csv += `Actual Cash,${data.actualCash}\n`;
+      csv += `Difference,${data.difference}\n`;
+
+      const blob = new Blob([csv], { type:'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `cash_reconciliation_${currentRoute}_${date}.csv`; a.click();
+      showStatus('Report exported!', 'success');
+    }
+
+    function clearData() {
+      if (!confirm('Clear all data?')) return;
+
+      // qty
+      Object.values(SKU_INDEX).forEach(meta => {
+        setValue(`qty_${meta.code}`, '');
+        setText(`total_${meta.code}`, '0.00');
+        updateRowStatus(meta.code, 0);
+      });
+
+      // payments
+      ['creditSales','creditRepayment','bankPOS','bankTransfer','cheque','coinsTotal']
+        .forEach(id => setValue(id, ''));
+
+      // notes
+      [500,100,50,20,10,5].forEach(d => setValue(`note${d}`, ''));
+
+      // recompute
+      recomputeSalesGrandTotal();
+      calculateCashNotes();
+      showStatus('Data cleared!', 'success');
+    }
+
+    // ===== STORAGE =====
+    function saveToStorage() {
+      const data = collectData();
+      localStorage.setItem('cashReconciliationData', JSON.stringify(data));
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem('cashReconciliationData');
+      if (!saved) return;
+      try {
+        const data = JSON.parse(saved);
+        if (data.route) selectRoute(data.route);
+        if (data.date) setValue('salesDate', data.date);
+
+        // sales items
+        (data.salesItems || []).forEach(i => {
+          if (SKU_INDEX[i.code]) {
+            setValue(`qty_${i.code}`, i.quantity);
+            setText(`total_${i.code}`, (i.quantity * Number(SKU_INDEX[i.code].price || 0)).toFixed(2));
+            updateRowStatus(i.code, i.quantity);
+          }
+        });
+
+        // payments
+        setValue('creditSales', data.creditSales || '');
+        setValue('creditRepayment', data.creditRepayment || '');
+        setValue('bankPOS', data.bankPOS || '');
+        setValue('bankTransfer', data.bankTransfer || '');
+        setValue('cheque', data.cheque || '');
+        setValue('coinsTotal', data.coins || '');
+
+        // notes
+        if (data.cashNotes && data.cashNotes.denominations) {
+          Object.entries(data.cashNotes.denominations).forEach(([denom, count]) => {
+            setValue(`note${denom}`, count || '');
+          });
+        }
+
+        // recompute
+        recomputeSalesGrandTotal();
+        calculateCashNotes();
+      } catch (e) {
+        console.error('Load storage failed:', e);
+      }
+    }
+
+    // ===== UI UTIL =====
+    function byId(id){ return document.getElementById(id); }
+    function getValue(id){ const el = byId(id); return el ? el.value : ''; }
+    function setValue(id, v){ const el = byId(id); if (el) el.value = v; }
+    function setText(id, t){ const el = byId(id); if (el) el.textContent = t; }
+    function toNum(v){ const n = Number(v); return isNaN(n) ? 0 : n; }
+
+    function showStatus(message, type) {
+      const div = byId('statusMessage');
+      div.className = `status-message status-${type}`; // type: success|error|info
+      div.textContent = message;
+      div.classList.remove('hidden');
+      setTimeout(()=> div.classList.add('hidden'), 4000);
+    }
+    function showLoading(show=true) {
+      const ov = byId('loadingOverlay');
+      if (!ov) return;
+      if (show) ov.classList.remove('hidden'); else ov.classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
